@@ -11,22 +11,25 @@
 #include <netinet/in.h>
 #include <thread>
 #include <string.h>
+#include <vector>
 using namespace std;
-void sendMessage(int sockfd)
+vector<int> allClients;
+static void sendMessage(int sockfd)
 {
+    char data[512];
     while(1)
     {
-        void ressiveMessage(int);
-        char data[52];
-        cout<<"输入要发送的信息:"<<endl;
+        cout<<"输入要发送的信息";
         cin>>data;
-        if(-1 == send(sockfd,data,sizeof(data),0))
+        for(auto it = allClients.begin();it != allClients.end();it ++)
         {
-            perror("send faild");
-            close(sockfd);
-            exit(EXIT_FAILURE);
+            if(-1 == send(*it,data,sizeof(data),0))
+            {
+                perror("send faild");
+                close(*it);
+                exit(EXIT_FAILURE);
+            }
         }
-        memset(data,0,sizeof(data));
     }
 }
 void ressiveMessage(int sockfd)
@@ -47,6 +50,13 @@ void ressiveMessage(int sockfd)
         }
         memset(buffer,0,sizeof(buffer));
     }
+}
+void communicate(int sockfd)
+{
+    thread rec(ressiveMessage,sockfd);
+    rec.detach();
+    thread sen(sendMessage,sockfd);
+    sen.detach();
 }
 int main(int argc,char *argv[])
 {
@@ -88,6 +98,8 @@ int main(int argc,char *argv[])
 
     while(1)
     {
+        int lastcon = -1;
+
         int connectfd = accept(sockfd,(sockaddr *)&other,&len);
         if(-1 == connectfd)
         {
@@ -96,12 +108,12 @@ int main(int argc,char *argv[])
             exit(EXIT_FAILURE);
         }
         cout<<"用户"<<other.sin_addr.s_addr<<"已连接！"<<endl;
-        thread send(sendMessage,connectfd);
-        thread ressive(ressiveMessage,connectfd);
-        if(send.joinable())
-            send.join();
-        if(ressive.joinable())
-            ressive.join();
+        if(lastcon != connectfd)
+        {
+            allClients.push_back(connectfd);
+        }
+        lastcon = connectfd;
+        communicate(connectfd);
     }
    return 0;
 }
