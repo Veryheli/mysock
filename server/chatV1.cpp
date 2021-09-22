@@ -57,6 +57,7 @@ void communicate(int sockfd)
     rec.detach();
     thread sen(sendMessage,sockfd);
     sen.detach();
+    
 }
 int main(int argc,char *argv[])
 {
@@ -80,7 +81,6 @@ int main(int argc,char *argv[])
     server.sin_family = AF_INET;
     server.sin_port = htons(atoi(argv[1]));
     server.sin_addr.s_addr = htonl(INADDR_ANY);
-
     //第三部，将socket描述符和相关的配置绑定
     if(-1 == bind(sockfd,(sockaddr*)&server,sizeof(server)))
     {
